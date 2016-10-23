@@ -2,6 +2,7 @@ package controllers;
 
         import com.fasterxml.jackson.databind.ObjectMapper;
         import com.fasterxml.jackson.databind.node.ObjectNode;
+        import models.ConnectionRequest;
         import models.Profile;
         import models.User;
         import play.mvc.Controller;
@@ -29,7 +30,7 @@ public class HomeController extends Controller {
         data.put("email",user.email);
         data.set("connections",objectMapper.valueToTree(user.connections.stream().map(connection->{
             ObjectNode connectionJson = objectMapper.createObjectNode();
-            User connectionJsonUser = User.find.byId(id);
+            User connectionJsonUser = User.find.byId(connection.id);
             Profile connectionJsonProfile = Profile.find.byId(user.profile.id);
             connectionJson.put("id",connectionJsonUser.id);
             connectionJson.put("firstName",connectionJsonProfile.firstName);
@@ -38,8 +39,31 @@ public class HomeController extends Controller {
             connectionJson.put("email",connectionJsonUser.email);
             return connectionJson;
         }).collect(Collectors.toList())));
+        data.set("connectionRequests",objectMapper.valueToTree(user.connectionRequestsReceived.stream().filter(x -> x.status.equals(ConnectionRequest.Status.WAITING) ).map(connectionRequest->{
+            ObjectNode connectionRequestsJson = objectMapper.createObjectNode();
+            User connectionRequestUser = connectionRequest.sender;
+            Profile connectionRequestProfile = Profile.find.byId(connectionRequestUser.profile.id);
+            connectionRequestsJson.put("id",connectionRequest.id);
+            connectionRequestsJson.put("firstName",connectionRequestProfile.firstName);
+            return connectionRequestsJson;
+        }).collect(Collectors.toList())));
+        data.set("suggestions",objectMapper.valueToTree(User.find.all().stream()
+                .filter(x->!user.equals(x))
+                .filter(x->!user.connections.contains(x))
+                .filter(x->!user.connectionRequestsReceived.stream().map(
+                        y->y.sender).collect(Collectors.toList()).contains(x))
+                .filter(x->!user.connectionRequestsSent.stream().map(
+                        y->y.receiver).collect(Collectors.toList()).contains(x)).map(suggestions->{
+                    ObjectNode suggestionJson = objectMapper.createObjectNode();
+                    Profile suggestionProfile = suggestions.profile;
+                    suggestionJson.put("firstName",suggestionProfile.firstName);
+                    suggestionJson.put("email",suggestions.email);
+                    return suggestionJson;
+                }).collect(Collectors.toList())));
 
-    return ok();
+
+
+        return ok();
     }
 
 }
