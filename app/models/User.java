@@ -27,6 +27,7 @@ public class User extends Model{
     @JoinTable(name = "user_connection",
     joinColumns = { @JoinColumn(name = "user_id")},
     inverseJoinColumns = {@JoinColumn(name="connection_id")})
+
     public Set<User> connections;
 
     @OneToMany(mappedBy = "sender")
